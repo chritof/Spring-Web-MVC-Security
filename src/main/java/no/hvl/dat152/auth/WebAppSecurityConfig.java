@@ -25,38 +25,45 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class WebAppSecurityConfig {
 
-	
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-	    http
-	        .formLogin(Customizer.withDefaults()) // Use default form login
-	        .authorizeHttpRequests(authorize -> authorize
-	        	.requestMatchers("/", "/css/**").permitAll() // Allow public pages
-	            .anyRequest().authenticated() // All other requests require authentication
-	        );
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/", "/viewbooks", "/login", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers("/addbook", "/addauthor").hasRole("ADMIN")
+						.anyRequest().authenticated()
+				)
+				.formLogin(form -> form
+						.loginPage("/login")                 // custom login-side (login.html)
+						.defaultSuccessUrl("/", true)        // gå til forsiden etter login
+						.permitAll()
+				)
+				.logout(logout -> logout
+						.logoutUrl("/logout")
+						.logoutSuccessUrl("/login?logout")
+						.permitAll()
+				);
 
-	    return http.build();
+		return http.build();
 	}
-    
-    @Bean
-    public PasswordEncoder passwordEncoder() {
+
+	@Bean
+	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
-	
-    @Bean
-	public UserDetailsService userDetailsService() {
-    	
-    	PasswordEncoder encoder = passwordEncoder();
+
+	@Bean
+	public UserDetailsService userDetailsService(PasswordEncoder encoder) {
 		UserDetails user = User.withUsername("user")
-			.password(encoder.encode("password"))
-			.roles("USER")
-			.build();
-		
+				.password(encoder.encode("password"))
+				.roles("USER")
+				.build();
+
 		UserDetails admin = User.withUsername("admin")
-			.password(encoder.encode("password123"))
-			.roles("ADMIN")
-			.build();
-		
+				.password(encoder.encode("password123"))
+				.roles("ADMIN")
+				.build();
+
 		return new InMemoryUserDetailsManager(user, admin);
 	}
 }
